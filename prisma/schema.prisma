@@ -1,0 +1,135 @@
+// Prisma schema for Masters Marketplace
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  icon      String
+  color     String
+  createdAt DateTime @default(now())
+
+  masters Master[]
+}
+
+model Master {
+  id             String   @id @default(cuid())
+  name           String
+  avatar         String
+  cover          String?
+  profession     String
+  bio            String
+  city           String
+  area           String?
+  categoryId     String
+  priceFrom      Int
+  priceTo        Int
+  currency       String   @default("₽")
+  rating         Float    @default(0)
+  reviewsCount   Int      @default(0)
+  completedOrders Int     @default(0)
+  responseTime   String   @default("в течение часа")
+  verified       Boolean  @default(false)
+  topRated       Boolean  @default(false)
+  skills         String   // comma-separated skills
+  languages      String   @default("Русский")
+  experienceYears Int     @default(1)
+  createdAt      DateTime @default(now())
+
+  category       Category @relation(fields: [categoryId], references: [id])
+  reviews        Review[]
+  orders         Order[]
+  chatMessages   ChatMessage[]
+  user           User?
+
+  @@index([categoryId])
+  @@index([city])
+  @@index([topRated])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  masterId    String
+  authorName  String
+  authorAvatar String?
+  rating      Int
+  text        String
+  pros        String?
+  cons        String?
+  jobTitle    String?
+  createdAt   DateTime @default(now())
+
+  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  @@index([masterId])
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  masterId    String
+  clientName  String
+  clientPhone String
+  clientEmail String?
+  jobTitle    String
+  description String
+  budget      Int?
+  preferredDate String?
+  address     String?
+  status      String   @default("new") // new | viewed | accepted | declined | completed
+  createdAt   DateTime @default(now())
+
+  master      Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  chatMessages ChatMessage[]
+
+  @@index([masterId])
+  @@index([status])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  orderId   String
+  masterId  String
+  sender    String   // "client" or "master"
+  text      String
+  createdAt DateTime @default(now())
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  master    Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([masterId])
+}
+
+model ServiceReview {
+  id          String   @id @default(cuid())
+  authorName  String
+  rating      Int
+  text        String
+  pros        String?
+  cons        String?
+  createdAt   DateTime @default(now())
+
+  @@index([rating])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("client") // "client" or "master"
+  phone     String?
+  masterId  String?  @unique
+  createdAt DateTime @default(now())
+
+  master    Master?  @relation(fields: [masterId], references: [id])
+
+  @@index([email])
+}
